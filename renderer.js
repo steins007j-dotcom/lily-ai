@@ -1,238 +1,229 @@
-(async () => {
-    const $ = id => document.getElementById(id)
-    const msgs = $('messages')
-    const input = $('user-input')
-    const sendBtn = $('send-btn')
-    const statusText = $('status-text')
-    const settingsPanel = $('settings-panel')
-    const settingsBtn = $('settings-btn')
-    const speakBtn = $('speak-btn')
-    const waveBars = $('wave-bars')
+;(async () => {
+  /* ── Neural Network Face ── */
+  function initNeuralFace() {
+    const canvas = document.getElementById('face-canvas')
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const W = 200, H = 220
 
-   let history = []
-       let cfg = {}
-           let busy = false
-    let lastLilyText = ''
-    let speaking = false
+    const nodes = [
+      // Face outline
+      {x:100,y:15,r:2.5},{x:130,y:22,r:2},{x:155,y:45,r:2},
+      {x:165,y:75,r:2},{x:163,y:105,r:2},{x:152,y:133,r:2},
+      {x:133,y:155,r:2},{x:100,y:165,r:2.5},{x:67,y:155,r:2},
+      {x:48,y:133,r:2},{x:37,y:105,r:2},{x:35,y:75,r:2},
+      {x:45,y:45,r:2},{x:70,y:22,r:2},
+      // Left eyebrow
+      {x:55,y:68,r:1.8},{x:67,y:62,r:1.8},{x:80,y:60,r:1.8},{x:90,y:63,r:1.8},
+      // Right eyebrow
+      {x:110,y:63,r:1.8},{x:120,y:60,r:1.8},{x:133,y:62,r:1.8},{x:145,y:68,r:1.8},
+      // Left eye
+      {x:62,y:82,r:2},{x:72,y:78,r:2},{x:82,y:80,r:2},
+      {x:83,y:90,r:2},{x:72,y:93,r:2},{x:62,y:90,r:2},
+      // Right eye
+      {x:118,y:80,r:2},{x:128,y:78,r:2},{x:138,y:82,r:2},
+      {x:138,y:90,r:2},{x:128,y:93,r:2},{x:118,y:90,r:2},
+      // Nose
+      {x:100,y:103,r:1.8},{x:93,y:118,r:1.8},{x:100,y:122,r:1.8},
+      {x:107,y:118,r:1.8},{x:88,y:122,r:1.8},{x:112,y:122,r:1.8},
+      // Mouth
+      {x:78,y:138,r:2},{x:89,y:134,r:2},{x:100,y:132,r:2},
+      {x:111,y:134,r:2},{x:122,y:138,r:2},{x:111,y:146,r:2},
+      {x:100,y:149,r:2},{x:89,y:146,r:2},
+      // Inner structure
+      {x:100,y:50,r:1.5},{x:75,y:50,r:1.5},{x:125,y:50,r:1.5},{x:100,y:175,r:1.5}
+    ]
 
-   // ── TTS / Speech ──────────────────────────────────────
-   function showWave() {
-         waveBars.classList.add('active')
-   }
+    nodes.forEach(n => { n.phase = Math.random() * Math.PI * 2 })
 
-   function hideWave() {
-         waveBars.classList.remove('active')
-   }
+    const connections = []
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x
+        const dy = nodes[i].y - nodes[j].y
+        const d = Math.sqrt(dx*dx + dy*dy)
+        if (d < 42) connections.push({a:i, b:j, d})
+      }
+    }
 
-   function speak(text) {
-         if (!window.speechSynthesis) {
-                 alert('Sorry, your system does not support speech synthesis.')
-                 return
-         }
-         // Stop any ongoing speech
-      window.speechSynthesis.cancel()
+    const signals = []
+    function spawnSignal() {
+      const c = connections[Math.floor(Math.random() * connections.length)]
+      signals.push({c, t:0, speed: 0.004 + Math.random()*0.006, fwd: Math.random()>0.5})
+    }
+    for (let i = 0; i < 10; i++) spawnSignal()
 
-      if (speaking) {
-              speaking = false
-              speakBtn.classList.remove('speaking')
-              speakBtn.title = 'Speak last reply'
-              hideWave()
-              return
+    let lastSpawn = 0
+    function draw(time) {
+      ctx.clearRect(0, 0, W, H)
+
+      // connections
+      connections.forEach(({a,b,d}) => {
+        const na = nodes[a], nb = nodes[b]
+        const alpha = Math.max(0.04, 0.2 - d/220)
+        ctx.beginPath()
+        ctx.moveTo(na.x, na.y)
+        ctx.lineTo(nb.x, nb.y)
+        ctx.strokeStyle = `rgba(0,207,255,${alpha})`
+        ctx.lineWidth = 0.6
+        ctx.stroke()
+      })
+
+      // signals
+      for (let i = signals.length - 1; i >= 0; i--) {
+        const s = signals[i]
+        s.t += s.speed
+        if (s.t >= 1) { signals.splice(i,1); spawnSignal(); continue }
+        const na = nodes[s.c.a], nb = nodes[s.c.b]
+        const t = s.fwd ? s.t : 1 - s.t
+        const sx = na.x + (nb.x - na.x)*t
+        const sy = na.y + (nb.y - na.y)*t
+        const g = ctx.createRadialGradient(sx,sy,0,sx,sy,6)
+        g.addColorStop(0,'rgba(0,255,238,0.95)')
+        g.addColorStop(1,'rgba(0,207,255,0)')
+        ctx.beginPath()
+        ctx.arc(sx,sy,6,0,Math.PI*2)
+        ctx.fillStyle = g
+        ctx.fill()
       }
 
-      const utter = new SpeechSynthesisUtterance(text)
-         utter.rate = 1.0
-         utter.pitch = 1.1
-         utter.volume = 1.0
+      if (time - lastSpawn > 280 && signals.length < 16) { spawnSignal(); lastSpawn = time }
 
-      // Pick a good voice if available
-      const voices = window.speechSynthesis.getVoices()
-         const preferred = voices.find(v =>
-                 v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))
-                                           ) || voices.find(v => v.lang.startsWith('en')) || voices[0]
-         if (preferred) utter.voice = preferred
+      // nodes
+      nodes.forEach(n => {
+        n.phase += 0.022
+        const b = 0.5 + 0.5 * Math.sin(n.phase)
+        const r = n.r * (0.9 + 0.2*Math.sin(n.phase))
+        const glow = ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,r*5)
+        glow.addColorStop(0,`rgba(0,207,255,${b*0.4})`)
+        glow.addColorStop(1,'rgba(0,207,255,0)')
+        ctx.beginPath(); ctx.arc(n.x,n.y,r*5,0,Math.PI*2)
+        ctx.fillStyle = glow; ctx.fill()
+        ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2)
+        ctx.fillStyle = `rgba(0,${Math.floor(180+b*75)},255,${0.6+b*0.4})`
+        ctx.fill()
+      })
 
-      utter.onstart = () => {
-              speaking = true
-              speakBtn.classList.add('speaking')
-              speakBtn.title = 'Stop speaking'
-              showWave()
+      requestAnimationFrame(draw)
+    }
+    requestAnimationFrame(draw)
+  }
+
+  initNeuralFace()
+
+  /* ── App Logic ── */
+  const messagesEl = document.getElementById('messages')
+  const inputEl    = document.getElementById('user-input')
+  const sendBtn    = document.getElementById('send-btn')
+  const statusEl   = document.getElementById('status-text')
+  const settingsBtn   = document.getElementById('settings-btn')
+  const settingsPanel = document.getElementById('settings-panel')
+  const saveBtn    = document.getElementById('save-settings-btn')
+  const closeBtn   = document.getElementById('close-settings-btn')
+  const btnClose   = document.getElementById('btn-close')
+  const btnMin     = document.getElementById('btn-minimize')
+
+  btnClose?.addEventListener('click', () => window.close())
+  btnMin?.addEventListener('click', () => {})
+
+  let config = {}, history = []
+
+  try { config = await window.lily.loadSettings() } catch(e) {}
+
+  function setStatus(t) { if (statusEl) statusEl.textContent = t }
+
+  function addMessage(role, text) {
+    const div = document.createElement('div')
+    div.className = 'msg ' + role
+    div.textContent = text
+    messagesEl.appendChild(div)
+    messagesEl.scrollTop = messagesEl.scrollHeight
+  }
+
+  function showTyping() {
+    const div = document.createElement('div')
+    div.className = 'msg lily'
+    div.id = 'typing-indicator'
+    div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>'
+    messagesEl.appendChild(div)
+    messagesEl.scrollTop = messagesEl.scrollHeight
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing-indicator')
+    if (el) el.remove()
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim()
+    if (!text) return
+    addMessage('user', text)
+    history.push({role:'user', content:text})
+    inputEl.value = ''
+    inputEl.style.height = 'auto'
+    setStatus('Thinking...')
+    showTyping()
+    try {
+      const result = await window.lily.chat(history)
+      removeTyping()
+      if (result.ok) {
+        addMessage('lily', result.reply)
+        history.push({role:'assistant', content:result.reply})
+        if (history.length > 40) history = history.slice(-40)
+        setStatus('Ready')
+      } else {
+        addMessage('system', 'Error: ' + result.error)
+        setStatus('Error')
       }
+    } catch(err) {
+      removeTyping()
+      addMessage('system', 'Something went wrong.')
+      setStatus('Error')
+    }
+  }
 
-      utter.onend = () => {
-              speaking = false
-              speakBtn.classList.remove('speaking')
-              speakBtn.title = 'Speak last reply'
-              hideWave()
-      }
+  sendBtn.addEventListener('click', sendMessage)
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
+  })
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto'
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px'
+  })
 
-      utter.onerror = () => {
-              speaking = false
-              speakBtn.classList.remove('speaking')
-              speakBtn.title = 'Speak last reply'
-              hideWave()
-      }
+  settingsBtn.addEventListener('click', () => {
+    document.getElementById('s-assistantName').value = config.assistantName || ''
+    document.getElementById('s-userName').value      = config.userName || ''
+    document.getElementById('s-tone').value          = config.tone || ''
+    document.getElementById('s-aboutUser').value     = config.aboutUser || ''
+    document.getElementById('s-careNotes').value     = config.careNotes || ''
+    document.getElementById('s-memory').value        = (config.memory || []).join('\n')
+    document.getElementById('s-apiKey').value        = config.apiKey || ''
+    const sel = document.getElementById('s-model')
+    if (sel) sel.value = config.model || 'llama-3.3-70b-versatile'
+    settingsPanel.classList.remove('hidden')
+  })
 
-      window.speechSynthesis.speak(utter)
-   }
+  saveBtn.addEventListener('click', async () => {
+    const c = {
+      assistantName: document.getElementById('s-assistantName').value.trim() || 'Lily',
+      userName:      document.getElementById('s-userName').value.trim(),
+      tone:          document.getElementById('s-tone').value.trim(),
+      aboutUser:     document.getElementById('s-aboutUser').value.trim(),
+      careNotes:     document.getElementById('s-careNotes').value.trim(),
+      memory:        document.getElementById('s-memory').value.split('\n').map(s=>s.trim()).filter(Boolean),
+      apiKey:        document.getElementById('s-apiKey').value.trim(),
+      model:         document.getElementById('s-model').value
+    }
+    try { config = await window.lily.saveSettings(c); addMessage('system','Settings saved.') }
+    catch(e) { addMessage('system','Could not save.') }
+    settingsPanel.classList.add('hidden')
+  })
 
-   speakBtn.addEventListener('click', () => {
-         if (lastLilyText) {
-                 speak(lastLilyText)
-         } else {
-                 statusText.textContent = 'Nothing to speak yet'
-                 setTimeout(() => { statusText.textContent = 'Ready' }, 2000)
-         }
-   })
+  closeBtn.addEventListener('click', () => settingsPanel.classList.add('hidden'))
 
-   // ── Messages ───────────────────────────────────────────
-   function addMsg(role, text) {
-         const div = document.createElement('div')
-         div.className = 'msg ' + role
-         div.textContent = text
-         msgs.appendChild(div)
-         msgs.scrollTop = msgs.scrollHeight
-   }
-
-   function showTyping() {
-         const div = document.createElement('div')
-         div.className = 'msg lily'
-         div.id = 'typing-indicator'
-         div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>'
-         msgs.appendChild(div)
-         msgs.scrollTop = msgs.scrollHeight
-   }
-
-   function hideTyping() {
-         const t = $('typing-indicator')
-         if (t) t.remove()
-   }
-
-   // ── Settings ───────────────────────────────────────────
-   async function loadCfg() {
-         try {
-                 cfg = await window.lily.getConfig()
-         } catch {
-                 cfg = {}
-         }
-   }
-
-   function openSettings() {
-         $('s-assistantName').value = cfg.assistantName || 'Lily'
-         $('s-userName').value = cfg.userName || ''
-         $('s-tone').value = cfg.tone || ''
-         $('s-aboutUser').value = cfg.aboutUser || ''
-         $('s-careNotes').value = cfg.careNotes || ''
-         $('s-memory').value = (cfg.memory || []).join('\n')
-         $('s-apiKey').value = cfg.apiKey || ''
-         $('s-model').value = cfg.model || 'llama-3.3-70b-versatile'
-         settingsPanel.classList.remove('hidden')
-   }
-
-   async function saveSettings() {
-         cfg.assistantName = $('s-assistantName').value.trim() || 'Lily'
-         cfg.userName = $('s-userName').value.trim()
-         cfg.tone = $('s-tone').value.trim()
-         cfg.aboutUser = $('s-aboutUser').value.trim()
-         cfg.careNotes = $('s-careNotes').value.trim()
-         cfg.memory = $('s-memory').value.split('\n').map(l => l.trim()).filter(Boolean)
-         cfg.apiKey = $('s-apiKey').value.trim()
-         cfg.model = $('s-model').value
-         try {
-                 await window.lily.saveConfig(cfg)
-         } catch {}
-         settingsPanel.classList.add('hidden')
-         statusText.textContent = 'Settings saved'
-         setTimeout(() => { statusText.textContent = 'Ready' }, 2000)
-   }
-
-   settingsBtn.addEventListener('click', openSettings)
-    $('save-settings-btn').addEventListener('click', saveSettings)
-    $('close-settings-btn').addEventListener('click', () => settingsPanel.classList.add('hidden'))
-
-   // ── Send message ───────────────────────────────────────
-   async function sendMessage() {
-         const text = input.value.trim()
-         if (!text || busy) return
-         busy = true
-         sendBtn.disabled = true
-         input.value = ''
-         input.style.height = 'auto'
-
-      addMsg('user', text)
-         history.push({ role: 'user', content: text })
-         statusText.textContent = 'Thinking...'
-         showTyping()
-
-      try {
-              const reply = await window.lily.chat({
-                        history,
-                        config: cfg
-              })
-              hideTyping()
-              addMsg('lily', reply)
-              lastLilyText = reply
-              history.push({ role: 'assistant', content: reply })
-              statusText.textContent = 'Ready'
-
-           // Auto-speak reply if speech synthesis is available
-           if (window.speechSynthesis) {
-                     // Small delay to ensure voices are loaded
-                setTimeout(() => speak(reply), 300)
-           }
-      } catch (err) {
-              hideTyping()
-              const errMsg = 'Error: ' + (err.message || 'Unknown error')
-              addMsg('lily', errMsg)
-              lastLilyText = errMsg
-              statusText.textContent = 'Error'
-              setTimeout(() => { statusText.textContent = 'Ready' }, 3000)
-      }
-
-      busy = false
-         sendBtn.disabled = false
-         input.focus()
-   }
-
-   sendBtn.addEventListener('click', sendMessage)
-
-   input.addEventListener('keydown', e => {
-         if (e.key === 'Enter' && !e.shiftKey) {
-                 e.preventDefault()
-                 sendMessage()
-         }
-   })
-
-   input.addEventListener('input', () => {
-         input.style.height = 'auto'
-         input.style.height = Math.min(input.scrollHeight, 120) + 'px'
-   })
-
-   // ── Window controls ────────────────────────────────────
-   $('btn-minimize').addEventListener('click', () => {
-         try { window.lily.minimize() } catch {}
-   })
-
-   $('btn-close').addEventListener('click', () => {
-         try { window.lily.close() } catch {}
-   })
-
-   // ── Init ───────────────────────────────────────────────
-   await loadCfg()
-
-   // Preload voices
-   if (window.speechSynthesis) {
-         window.speechSynthesis.getVoices()
-         window.speechSynthesis.addEventListener('voiceschanged', () => {
-                 window.speechSynthesis.getVoices()
-         })
-   }
-
-   const name = cfg.assistantName || 'Lily'
-    const greeting = `Hello! I'm ${name}. How can I help you today?`
-    addMsg('lily', greeting)
-    lastLilyText = greeting
-
-   statusText.textContent = 'Ready'
-    input.focus()
+  const name = config.assistantName || 'Lily'
+  const user = config.userName ? ', ' + config.userName : ''
+  addMessage('lily', 'Hi' + user + ". I'm " + name + ". I'm here whenever you need me.")
+  setStatus(config.apiKey ? 'Connected' : 'Offline mode')
 })()
