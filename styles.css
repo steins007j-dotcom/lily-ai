@@ -1,343 +1,417 @@
-/* ============================================
-   LILY AI — ARC REACTOR DESIGN
-   Iron Man style glowing blue arc reactor UI
-   ============================================ */
+ /* ============================================
+     LILY AI — NEURAL FACE DESIGN
+     ============================================ */
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-    --bg: #010a14;
-    --surface: #040f1c;
-    --border: #0a4a7a;
-    --arc: #00cfff;
-    --arc2: #0080ff;
-    --arc3: #00ffee;
-    --arc-glow: #00cfff;
-    --text: #c8eeff;
-    --text-dim: #3a6a8a;
-    --glow: 0 0 15px #00cfff99;
-    --glow-strong: 0 0 30px #00cfffcc, 0 0 60px #00cfff44;
-    --glow-ring: 0 0 20px #00cfff, 0 0 40px #00cfff66, 0 0 80px #00cfff22;
-    --danger: #ff4466;
-}
+  :root {
+      --bg: #010a14;
+      --surface: #040f1c;
+      --border: #0a4a7a;
+      --arc: #00cfff;
+      --arc2: #0080ff;
+      --arc3: #00ffee;
+      --text: #c8eeff;
+      --text-dim: #3a6a8a;
+      --glow: 0 0 15px #00cfff99;
+      --glow-strong: 0 0 30px #00cfffcc, 0 0 60px #00cfff44;
+      --danger: #ff4466;
+  }
 
-html, body {
-    height: 100%;
-    background: transparent;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    color: var(--text);
-    overflow: hidden;
-}
+  html, body {
+      height: 100%;
+      background: transparent;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: var(--text);
+      overflow: hidden;
+  }
 
-#app {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    background: radial-gradient(ellipse at 50% 0%, #020f1e 0%, #010a14 70%);
-    border: 1px solid var(--arc2);
-    border-radius: 20px;
-    overflow: hidden;
-    position: relative;
-    box-shadow: 0 0 40px #00cfff22, inset 0 0 60px #00cfff08;
-}
+  #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: radial-gradient(ellipse at 50% 0%, #020f1e 0%, #010a14 70%);
+      border: 1px solid var(--arc2);
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 40px #00cfff22, inset 0 0 60px #00cfff08;
+  }
 
-/* Grid overlay for sci-fi feel */
-#app::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
+  #app::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
           linear-gradient(rgba(0,207,255,0.03) 1px, transparent 1px),
           linear-gradient(90deg, rgba(0,207,255,0.03) 1px, transparent 1px);
-    background-size: 30px 30px;
-    pointer-events: none;
-    z-index: 0;
+      background-size: 30px 30px;
+      pointer-events: none;
+      z-index: 0;
+  }
+
+  /* TITLEBAR */
+  #titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, #010c18 0%, #020f1e 100%);
+      border-bottom: 1px solid var(--border);
+      -webkit-app-region: drag;
+      position: relative;
+      z-index: 10;
+  }
+
+  #app-name {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4em;
+      color: var(--arc);
+      text-shadow: var(--glow);
+  }
+
+  #window-controls {
+      display: flex;
+      gap: 6px;
+      -webkit-app-region: no-drag;
+  }
+
+  #window-controls button {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+  }
+  #window-controls button:hover { border-color: var(--arc); color: var(--arc); box-shadow: var(--glow); }
+  #btn-close:hover { border-color: var(--danger); color: var(--danger); box-shadow: 0 0 10px var(--danger); }
+
+  /* =====================
+     NEURAL FACE CANVAS
+     ===================== */
+  #face-canvas {
+      display: block;
+      margin: 16px auto 8px;
+      position: relative;
+      z-index: 5;
+      filter: drop-shadow(0 0 18px rgba(0,207,255,0.5));
+  }
+
+  /* CHAT */
+  #chat-container {
+      flex: 1;
+      overflow: hidden;
+      padding: 8px 12px;
+      position: relative;
+      z-index: 5;
+  }
+
+  #messages {
+      height: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--arc2) transparent;
+      padding-right: 4px;
+  }
+
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--arc2); border-radius: 4px; }
+
+  .msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      animation: msg-appear 0.3s ease;
+      white-space: pre-wrap;
+      word-break: break-word;
+  }
+
+  @keyframes msg-appear {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #012840, #01182a);
+      border: 1px solid var(--arc2);
+      color: var(--text);
+      box-shadow: 0 0 10px #00cfff22;
+      border-bottom-right-radius: 4px;
+  }
+
+  .msg.lily {
+      align-self: flex-start;
+      background: linear-gradient(135deg, #010f1e, #020a18);
+      border: 1px solid var(--border);
+      color: var(--arc3);
+      text-shadow: 0 0 8px #00cfff44;
+      border-bottom-left-radius: 4px;
+      position: relative;
+  }
+
+  .msg.lily::before {
+      content: '◈ ';
+      color: var(--arc);
+      font-size: 10px;
+  }
+
+  .msg.system {
+      align-self: center;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 11px;
+      font-style: italic;
+  }
+
+  /* TYPING INDICATOR */
+  .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 14px;
+      background: linear-gradient(135deg, #010f1e, #020a18);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      border-bottom-left-radius: 4px;
+      align-self: flex-start;
+      max-width: 80px;
+  }
+
+  .typing-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--arc);
+      box-shadow: 0 0 6px var(--arc);
+      animation: arc-blink 1.2s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes arc-blink {
+      0%, 80%, 100% { opacity: 0.15; transform: scale(0.8); }
+      40%           { opacity: 1;    transform: scale(1); box-shadow: 0 0 10px var(--arc); }
+  }
+
+  /* INPUT ROW */
+  #input-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding: 10px 14px;
+      border-top: 1px solid var(--border);
+      background: linear-gradient(to top, #010c18, transparent);
+      position: relative;
+      z-index: 10;
+  }
+
+  #user-input {
+      flex: 1;
+      background: #010f1e;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 9px 12px;
+      resize: none;
+      max-height: 120px;
+      overflow-y: auto;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: inherit;
+      line-height: 1.4;
+  }
+
+  #user-input:focus {
+      outline: none;
+      border-color: var(--arc);
+      box-shadow: 0 0 15px #00cfff33, inset 0 0 10px #00cfff11;
+  }
+
+  #user-input::placeholder {
+      color: var(--text-dim);
+      font-style: italic;
+  }
+
+  #send-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--arc);
+      background: radial-gradient(circle, #012840 0%, #010a14 100%);
+      color: var(--arc);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      box-shadow: 0 0 10px #00cfff44;
+      flex-shrink: 0;
+  }
+
+  #send-btn:hover {
+      background: radial-gradient(circle, #013a50 0%, #012030 100%);
+      box-shadow: var(--glow-strong);
+      transform: scale(1.1);
+  }
+
+  #send-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+  }
+
+  /* STATUS BAR */
+  #status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 14px 8px;
+      position: relative;
+      z-index: 10;
+  }
+
+  #status-text {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      font-style: italic;
+  }
+
+  #settings-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      transition: all 0.2s;
+      line-height: 1;
+  }
+
+  #settings-btn:hover {
+      color: var(--arc);
+      text-shadow: var(--glow);
+      transform: rotate(60deg);
+  }
+
+  /* SETTINGS PANEL */
+  #settings-panel {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, #010c18 0%, #020f1e 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      z-index: 100;
+      overflow-y: auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--arc2) transparent;
+  }
+
+  #settings-panel.hidden { display: none; }
+
+  #settings-panel h2 {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--arc);
+      text-shadow: var(--glow);
+      margin-bottom: 4px;
+  }
+
+  #settings-panel label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+  }
+
+  #settings-panel input,
+  #settings-panel textarea,
+  #settings-panel select {
+      background: #010f1e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 12px;
+      padding: 7px 10px;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      resize: vertical;
+  }
+
+  #settings-panel input:focus,
+  #settings-panel textarea:focus,
+  #settings-panel select:focus {
+      outline: none;
+      border-color: var(--arc);
+      box-shadow: 0 0 10px #00cfff33;
+  }
+
+  #settings-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+  }
+
+  #settings-actions button {
+      flex: 1;
+      padding: 9px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: all 0.2s;
+  }
+
+  #save-settings-btn {
+      background: linear-gradient(135deg, var(--arc2), var(--arc));
+      color: #000;
+      border-color: transparent;
+    color: #000;
+    border-color: transparent;
+    box-shadow: 0 0 15px #00cfff44;
 }
 
-/* TITLEBAR */
-#titlebar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    background: linear-gradient(135deg, #010c18 0%, #020f1e 100%);
-    border-bottom: 1px solid var(--border);
-    -webkit-app-region: drag;
-    position: relative;
-    z-index: 10;
+#save-settings-btn:hover {
+    box-shadow: var(--glow-strong);
+    transform: translateY(-1px);
 }
 
-#app-name {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.4em;
-    color: var(--arc);
-    text-shadow: var(--glow);
-}
-
-#window-controls {
-    display: flex;
-    gap: 6px;
-    -webkit-app-region: no-drag;
-}
-
-#window-controls button {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
+#close-settings-btn {
     background: transparent;
     color: var(--text-dim);
-    font-size: 13px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-#window-controls button:hover { border-color: var(--arc); color: var(--arc); box-shadow: var(--glow); }
-#btn-close:hover { border-color: var(--danger); color: var(--danger); box-shadow: 0 0 10px var(--danger); }
-
-/* =====================
-   NEURAL FACE CANVAS
-   ===================== */
-#face-canvas {
-    display: block;
-    margin: 16px auto 8px;
-    position: relative;
-    z-index: 5;
-    filter: drop-shadow(0 0 18px rgba(0,207,255,0.5));
 }
 
----
-FILE 3 — renderer.js (full replacement)
-
-;(async () => {
-  /* ── Neural Network Face ── */
-  function initNeuralFace() {
-    const canvas = document.getElementById('face-canvas')
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    const W = 200, H = 220
-
-    const nodes = [
-      // Face outline
-      {x:100,y:15,r:2.5},{x:130,y:22,r:2},{x:155,y:45,r:2},
-      {x:165,y:75,r:2},{x:163,y:105,r:2},{x:152,y:133,r:2},
-      {x:133,y:155,r:2},{x:100,y:165,r:2.5},{x:67,y:155,r:2},
-      {x:48,y:133,r:2},{x:37,y:105,r:2},{x:35,y:75,r:2},
-      {x:45,y:45,r:2},{x:70,y:22,r:2},
-      // Left eyebrow
-      {x:55,y:68,r:1.8},{x:67,y:62,r:1.8},{x:80,y:60,r:1.8},{x:90,y:63,r:1.8},
-      // Right eyebrow
-      {x:110,y:63,r:1.8},{x:120,y:60,r:1.8},{x:133,y:62,r:1.8},{x:145,y:68,r:1.8},
-      // Left eye
-      {x:62,y:82,r:2},{x:72,y:78,r:2},{x:82,y:80,r:2},
-      {x:83,y:90,r:2},{x:72,y:93,r:2},{x:62,y:90,r:2},
-      // Right eye
-      {x:118,y:80,r:2},{x:128,y:78,r:2},{x:138,y:82,r:2},
-      {x:138,y:90,r:2},{x:128,y:93,r:2},{x:118,y:90,r:2},
-      // Nose
-      {x:100,y:103,r:1.8},{x:93,y:118,r:1.8},{x:100,y:122,r:1.8},
-      {x:107,y:118,r:1.8},{x:88,y:122,r:1.8},{x:112,y:122,r:1.8},
-      // Mouth
-      {x:78,y:138,r:2},{x:89,y:134,r:2},{x:100,y:132,r:2},
-      {x:111,y:134,r:2},{x:122,y:138,r:2},{x:111,y:146,r:2},
-      {x:100,y:149,r:2},{x:89,y:146,r:2},
-      // Inner structure
-      {x:100,y:50,r:1.5},{x:75,y:50,r:1.5},{x:125,y:50,r:1.5},{x:100,y:175,r:1.5}
-    ]
-
-    nodes.forEach(n => { n.phase = Math.random() * Math.PI * 2 })
-
-    const connections = []
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const dx = nodes[i].x - nodes[j].x
-        const dy = nodes[i].y - nodes[j].y
-        const d = Math.sqrt(dx*dx + dy*dy)
-        if (d < 42) connections.push({a:i, b:j, d})
-      }
-    }
-
-    const signals = []
-    function spawnSignal() {
-      const c = connections[Math.floor(Math.random() * connections.length)]
-      signals.push({c, t:0, speed: 0.004 + Math.random()*0.006, fwd: Math.random()>0.5})
-    }
-    for (let i = 0; i < 10; i++) spawnSignal()
-
-    let lastSpawn = 0
-    function draw(time) {
-      ctx.clearRect(0, 0, W, H)
-
-      // connections
-      connections.forEach(({a,b,d}) => {
-        const na = nodes[a], nb = nodes[b]
-        const alpha = Math.max(0.04, 0.2 - d/220)
-        ctx.beginPath()
-        ctx.moveTo(na.x, na.y)
-        ctx.lineTo(nb.x, nb.y)
-        ctx.strokeStyle = `rgba(0,207,255,${alpha})`
-        ctx.lineWidth = 0.6
-        ctx.stroke()
-      })
-
-      // signals
-      for (let i = signals.length - 1; i >= 0; i--) {
-        const s = signals[i]
-        s.t += s.speed
-        if (s.t >= 1) { signals.splice(i,1); spawnSignal(); continue }
-        const na = nodes[s.c.a], nb = nodes[s.c.b]
-        const t = s.fwd ? s.t : 1 - s.t
-        const sx = na.x + (nb.x - na.x)*t
-        const sy = na.y + (nb.y - na.y)*t
-        const g = ctx.createRadialGradient(sx,sy,0,sx,sy,6)
-        g.addColorStop(0,'rgba(0,255,238,0.95)')
-        g.addColorStop(1,'rgba(0,207,255,0)')
-        ctx.beginPath()
-        ctx.arc(sx,sy,6,0,Math.PI*2)
-        ctx.fillStyle = g
-        ctx.fill()
-      }
-
-      if (time - lastSpawn > 280 && signals.length < 16) { spawnSignal(); lastSpawn = time }
-
-      // nodes
-      nodes.forEach(n => {
-        n.phase += 0.022
-        const b = 0.5 + 0.5 * Math.sin(n.phase)
-        const r = n.r * (0.9 + 0.2*Math.sin(n.phase))
-        const glow = ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,r*5)
-        glow.addColorStop(0,`rgba(0,207,255,${b*0.4})`)
-        glow.addColorStop(1,'rgba(0,207,255,0)')
-        ctx.beginPath(); ctx.arc(n.x,n.y,r*5,0,Math.PI*2)
-        ctx.fillStyle = glow; ctx.fill()
-        ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2)
-        ctx.fillStyle = `rgba(0,${Math.floor(180+b*75)},255,${0.6+b*0.4})`
-        ctx.fill()
-      })
-
-      requestAnimationFrame(draw)
-    }
-    requestAnimationFrame(draw)
-  }
-
-  initNeuralFace()
-
-  /* ── App Logic ── */
-  const messagesEl = document.getElementById('messages')
-  const inputEl    = document.getElementById('user-input')
-  const sendBtn    = document.getElementById('send-btn')
-  const statusEl   = document.getElementById('status-text')
-  const settingsBtn   = document.getElementById('settings-btn')
-  const settingsPanel = document.getElementById('settings-panel')
-  const saveBtn    = document.getElementById('save-settings-btn')
-  const closeBtn   = document.getElementById('close-settings-btn')
-  const btnClose   = document.getElementById('btn-close')
-  const btnMin     = document.getElementById('btn-minimize')
-
-  btnClose?.addEventListener('click', () => window.close())
-  btnMin?.addEventListener('click', () => {})
-
-  let config = {}, history = []
-
-  try { config = await window.lily.loadSettings() } catch(e) {}
-
-  function setStatus(t) { if (statusEl) statusEl.textContent = t }
-
-  function addMessage(role, text) {
-    const div = document.createElement('div')
-    div.className = 'msg ' + role
-    div.textContent = text
-    messagesEl.appendChild(div)
-    messagesEl.scrollTop = messagesEl.scrollHeight
-  }
-
-  function showTyping() {
-    const div = document.createElement('div')
-    div.className = 'msg lily'
-    div.id = 'typing-indicator'
-    div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>'
-    messagesEl.appendChild(div)
-    messagesEl.scrollTop = messagesEl.scrollHeight
-  }
-
-  function removeTyping() {
-    const el = document.getElementById('typing-indicator')
-    if (el) el.remove()
-  }
-
-  async function sendMessage() {
-    const text = inputEl.value.trim()
-    if (!text) return
-    addMessage('user', text)
-    history.push({role:'user', content:text})
-    inputEl.value = ''
-    inputEl.style.height = 'auto'
-    setStatus('Thinking...')
-    showTyping()
-    try {
-      const result = await window.lily.chat(history)
-      removeTyping()
-      if (result.ok) {
-        addMessage('lily', result.reply)
-        history.push({role:'assistant', content:result.reply})
-        if (history.length > 40) history = history.slice(-40)
-        setStatus('Ready')
-      } else {
-        addMessage('system', 'Error: ' + result.error)
-        setStatus('Error')
-      }
-    } catch(err) {
-      removeTyping()
-      addMessage('system', 'Something went wrong.')
-      setStatus('Error')
-    }
-  }
-
-  sendBtn.addEventListener('click', sendMessage)
-  inputEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
-  })
-  inputEl.addEventListener('input', () => {
-    inputEl.style.height = 'auto'
-    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px'
-  })
-
-  settingsBtn.addEventListener('click', () => {
-    document.getElementById('s-assistantName').value = config.assistantName || ''
-    document.getElementById('s-userName').value      = config.userName || ''
-    document.getElementById('s-tone').value          = config.tone || ''
-    document.getElementById('s-aboutUser').value     = config.aboutUser || ''
-    document.getElementById('s-careNotes').value     = config.careNotes || ''
-    document.getElementById('s-memory').value        = (config.memory || []).join('\n')
-    document.getElementById('s-apiKey').value        = config.apiKey || ''
-    const sel = document.getElementById('s-model')
-    if (sel) sel.value = config.model || 'llama-3.3-70b-versatile'
-    settingsPanel.classList.remove('hidden')
-  })
-
-  saveBtn.addEventListener('click', async () => {
-    const c = {
-      assistantName: document.getElementById('s-assistantName').value.trim() || 'Lily',
-      userName:      document.getElementById('s-userName').value.trim(),
-      tone:          document.getElementById('s-tone').value.trim(),
-      aboutUser:     document.getElementById('s-aboutUser').value.trim(),
-      careNotes:     document.getElementById('s-careNotes').value.trim(),
-      memory:        document.getElementById('s-memory').value.split('\n').map(s=>s.trim()).filter(Boolean),
-      apiKey:        document.getElementById('s-apiKey').value.trim(),
-      model:         document.getElementById('s-model').value
-    }
-    try { config = await window.lily.saveSettings(c); addMessage('system','Settings saved.') }
-    catch(e) { addMessage('system','Could not save.') }
-    settingsPanel.classList.add('hidden')
-  })
-
-  closeBtn.addEventListener('click', () => settingsPanel.classList.add('hidden'))
-
-  const name = config.assistantName || 'Lily'
-  const user = config.userName ? ', ' + config.userName : ''
-  addMessage('lily', 'Hi' + user + ". I'm " + name + ". I'm here whenever you need me.")
-  setStatus(config.apiKey ? 'Connected' : 'Offline mode')
-})()
+#close-settings-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+    box-shadow: 0 0 10px #ff446644;
+}
