@@ -1,93 +1,63 @@
-<!DOCTYPE html>
-<html lang="en">
+ <!DOCTYPE html>
+  <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lily</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lily</title>
   <link rel="stylesheet" href="styles.css" />
   </head>
-<body>
+  <body>
   <div id="app">
-      <div id="titlebar">
-            <span id="app-name">LILY</span>span>
-            <div id="window-controls">
-                    <button id="btn-minimize" title="Minimize">&#8212;</button>button>
-                    <button id="btn-close" title="Close">&#x2715;</button>button>
-            </div>div>
-      </div>div>
 
-      <div id="avatar-ring">
-            <div id="avatar-pulse"></div>div>
-            <div id="avatar-core">
-                    <span id="avatar-icon">&#9670;</span>span>
-            </div>div>
-      </div>div>
+    <div id="titlebar">
+      <span id="app-name">LILY</span>
+      <div id="window-controls">
+        <button id="btn-minimize" title="Minimize">&#8212;</button>
+        <button id="btn-close" title="Close">&#x2715;</button>
+      </div>
+    </div>
 
-      <div id="wave-bars">
-            <div class="wave-bar"></div>div>
-            <div class="wave-bar"></div>div>
-            <div class="wave-bar"></div>div>
-            <div class="wave-bar"></div>div>
-            <div class="wave-bar"></div>div>
-            <div class="wave-bar"></div>div>
-            <div class="wave-bar"></div>div>
-      </div>div>
+    <canvas id="face-canvas" width="200" height="220"></canvas>
 
-      <div id="chat-container">
-            <div id="messages"></div>div>
-      </div>div>
+    <div id="chat-container">
+      <div id="messages"></div>
+    </div>
 
-      <div id="input-row">
-            <textarea id="user-input" rows="1" placeholder="Talk to Lily..."></textarea>
-            <button id="speak-btn" title="Speak last reply">&#128265;</button>button>
-            <button id="send-btn">&#9654;</button>button>
-      </div>div>
+    <div id="input-row">
+      <textarea id="user-input" rows="1" placeholder="Talk to Lily..."></textarea>
+      <button id="send-btn">&#9654;</button>
+    </div>
 
-      <div id="status-bar">
-            <span id="status-text">Ready</span>span>
-            <button id="settings-btn" title="Settings">&#9881;</button>button>
-      </div>div>
-  </div>div>
+    <div id="status-bar">
+      <span id="status-text">Ready</span>
+      <button id="settings-btn" title="Settings">&#9881;</button>
+    </div>
+
+  </div>
 
   <div id="settings-panel" class="hidden">
-      <h2>Settings</h2>
-    <label>Assistant Name
-        <input type="text" id="s-assistantName" />
-    </label>
-    <label>Your Name
-        <input type="text" id="s-userName" />
-    </label>
-    <label>Tone
-        <input type="text" id="s-tone" />
-    </label>
-    <label>About You
-        <textarea id="s-aboutUser" rows="3"></textarea>
-    </label>
-    <label>Care Notes
-        <textarea id="s-careNotes" rows="3"></textarea>
-    </label>
-    <label>Memory (one item per line)
-        <textarea id="s-memory" rows="4"></textarea>
-    </label>
-    <label>Groq API Key
-        <input type="password" id="s-apiKey" />
-    </label>
+    <h2>Settings</h2>
+    <label>Assistant Name<input type="text" id="s-assistantName" /></label>
+    <label>Your Name<input type="text" id="s-userName" /></label>
+    <label>Tone<input type="text" id="s-tone" /></label>
+    <label>About You<textarea id="s-aboutUser" rows="3"></textarea></label>
+    <label>Care Notes<textarea id="s-careNotes" rows="3"></textarea></label>
+    <label>Memory (one per line)<textarea id="s-memory" rows="4"></textarea></label>
+    <label>Groq API Key<input type="password" id="s-apiKey" /></label>
     <label>Model
-        <select id="s-model">
-          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>option>
-          <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>option>
-          <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>option>
-          <option value="gemma2-9b-it">Gemma 2 9B</option>option>
-        </select>select>
+      <select id="s-model">
+        <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+        <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+        <option value="gemma2-9b-it">Gemma 2 9B</option>
+      </select>
     </label>
     <div id="settings-actions">
-        <button id="save-settings-btn">Save</button>button>
-        <button id="close-settings-btn">Cancel</button>button>
-    </div>div>
-  </div>div>
+      <button id="save-settings-btn">Save</button>
+      <button id="close-settings-btn">Cancel</button>
+    </div>
+  </div>
 
-<script src="renderer.js"></script>
-</body>
-</html>html></label></label></h2>
-</body></title>
-  </head>
+  <script src="renderer.js"></script>
+  </body>
+  </html>
