@@ -1,246 +1,238 @@
-;(async () => {
-  const $ = id => document.getElementById(id)
-  const msgs = $('messages')
-  const input = $('user-input')
-  const sendBtn = $('send-btn')
-  const statusText = $('status-text')
-  const settingsPanel = $('settings-panel')
-  const settingsBtn = $('settings-btn')
+(async () => {
+    const $ = id => document.getElementById(id)
+    const msgs = $('messages')
+    const input = $('user-input')
+    const sendBtn = $('send-btn')
+    const statusText = $('status-text')
+    const settingsPanel = $('settings-panel')
+    const settingsBtn = $('settings-btn')
+    const speakBtn = $('speak-btn')
+    const waveBars = $('wave-bars')
 
-  let history = []
-    let cfg = {}
-      let busy = false
+   let history = []
+       let cfg = {}
+           let busy = false
+    let lastLilyText = ''
+    let speaking = false
 
-  function addMsg(role, text) {
-    const div = document.createElement('div')
-    div.className = 'msg ' + role
-    div.textContent = text
-    msgs.appendChild(div)
-    msgs.scrollTop = msgs.scrollHeight
-  }
+   // ── TTS / Speech ──────────────────────────────────────
+   function showWave() {
+         waveBars.classList.add('active')
+   }
 
-  function showTyping() {
-    const div = document.createElement('div')
-    div.className = 'msg lily'
-    div.id = 'typing-indicator'
-    div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>'
-    msgs.appendChild(div)
-    msgs.scrollTop = msgs.scrollHeight
-  }
+   function hideWave() {
+         waveBars.classList.remove('active')
+   }
 
-  function hideTyping() {
-    const el = $('typing-indicator')
-    if (el) el.remove()
-  }
+   function speak(text) {
+         if (!window.speechSynthesis) {
+                 alert('Sorry, your system does not support speech synthesis.')
+                 return
+         }
+         // Stop any ongoing speech
+      window.speechSynthesis.cancel()
 
-  function setStatus(text) { statusText.textContent = text }
-
-  async function sendMessage() {
-    if (busy) return
-    const text = input.value.trim()
-    if (!text) return
-    input.value = ''
-    input.style.height = 'auto'
-    addMsg('user', text)
-    history.push({ role: 'user', content: text })
-    busy = true
-    setStatus('Thinking...')
-    showTyping()
-    try {
-      const result = await window.lily.chat(history)
-      hideTyping()
-      if (result.ok) {
-        addMsg('lily', result.reply)
-        history.push({ role: 'assistant', content: result.reply })
-      } else {
-        addMsg('system', 'Error: ' + result.error)
+      if (speaking) {
+              speaking = false
+              speakBtn.classList.remove('speaking')
+              speakBtn.title = 'Speak last reply'
+              hideWave()
+              return
       }
-    } catch (e) {
-      hideTyping()
-      addMsg('system', 'Something went wrong. Please try again.')
-    }
-    busy = false
-    setStatus('Ready')
-  };(async () => {
-    let config = {}
-    let history = []
 
-    const messagesEl = document.getElementById('messages')
-    const inputEl = document.getElementById('user-input')
-    const sendBtn = document.getElementById('send-btn')
-    const statusEl = document.getElementById('status-text')
-    const settingsBtn = document.getElementById('settings-btn')
-    const settingsPanel = document.getElementById('settings-panel')
-    const saveSettingsBtn = document.getElementById('save-settings-btn')
-    const closeSettingsBtn = document.getElementById('close-settings-btn')
-    const btnClose = document.getElementById('btn-close')
-    const btnMinimize = document.getElementById('btn-minimize')
+      const utter = new SpeechSynthesisUtterance(text)
+         utter.rate = 1.0
+         utter.pitch = 1.1
+         utter.volume = 1.0
 
-    btnClose?.addEventListener('click', () => window.close())
-    btnMinimize?.addEventListener('click', () => {})
+      // Pick a good voice if available
+      const voices = window.speechSynthesis.getVoices()
+         const preferred = voices.find(v =>
+                 v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))
+                                           ) || voices.find(v => v.lang.startsWith('en')) || voices[0]
+         if (preferred) utter.voice = preferred
 
-    try { config = await window.lily.loadSettings() } catch (e) { console.warn(e) }
+      utter.onstart = () => {
+              speaking = true
+              speakBtn.classList.add('speaking')
+              speakBtn.title = 'Stop speaking'
+              showWave()
+      }
 
-    function setStatus(t) { if (statusEl) statusEl.textContent = t }
+      utter.onend = () => {
+              speaking = false
+              speakBtn.classList.remove('speaking')
+              speakBtn.title = 'Speak last reply'
+              hideWave()
+      }
 
-    function addMessage(role, text) {
-      const div = document.createElement('div')
-      div.className = 'msg ' + role
-      div.textContent = text
-      messagesEl.appendChild(div)
-      messagesEl.scrollTop = messagesEl.scrollHeight
-      return div
-    }
+      utter.onerror = () => {
+              speaking = false
+              speakBtn.classList.remove('speaking')
+              speakBtn.title = 'Speak last reply'
+              hideWave()
+      }
 
-    function showTyping() {
-      const div = document.createElement('div')
-      div.className = 'msg lily'
-      div.id = 'typing-indicator'
-      div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>'
-      messagesEl.appendChild(div)
-      messagesEl.scrollTop = messagesEl.scrollHeight
-    }
+      window.speechSynthesis.speak(utter)
+   }
 
-    function removeTyping() {
-      const el = document.getElementById('typing-indicator')
-      if (el) el.remove()
-    }
+   speakBtn.addEventListener('click', () => {
+         if (lastLilyText) {
+                 speak(lastLilyText)
+         } else {
+                 statusText.textContent = 'Nothing to speak yet'
+                 setTimeout(() => { statusText.textContent = 'Ready' }, 2000)
+         }
+   })
 
-    async function sendMessage() {
-      const text = inputEl.value.trim()
-      if (!text) return
-      addMessage('user', text)
-      history.push({ role: 'user', content: text })
-      inputEl.value = ''
-      inputEl.style.height = 'auto'
-      setStatus('Thinking...')
-      showTyping()
+   // ── Messages ───────────────────────────────────────────
+   function addMsg(role, text) {
+         const div = document.createElement('div')
+         div.className = 'msg ' + role
+         div.textContent = text
+         msgs.appendChild(div)
+         msgs.scrollTop = msgs.scrollHeight
+   }
+
+   function showTyping() {
+         const div = document.createElement('div')
+         div.className = 'msg lily'
+         div.id = 'typing-indicator'
+         div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>'
+         msgs.appendChild(div)
+         msgs.scrollTop = msgs.scrollHeight
+   }
+
+   function hideTyping() {
+         const t = $('typing-indicator')
+         if (t) t.remove()
+   }
+
+   // ── Settings ───────────────────────────────────────────
+   async function loadCfg() {
+         try {
+                 cfg = await window.lily.getConfig()
+         } catch {
+                 cfg = {}
+         }
+   }
+
+   function openSettings() {
+         $('s-assistantName').value = cfg.assistantName || 'Lily'
+         $('s-userName').value = cfg.userName || ''
+         $('s-tone').value = cfg.tone || ''
+         $('s-aboutUser').value = cfg.aboutUser || ''
+         $('s-careNotes').value = cfg.careNotes || ''
+         $('s-memory').value = (cfg.memory || []).join('\n')
+         $('s-apiKey').value = cfg.apiKey || ''
+         $('s-model').value = cfg.model || 'llama-3.3-70b-versatile'
+         settingsPanel.classList.remove('hidden')
+   }
+
+   async function saveSettings() {
+         cfg.assistantName = $('s-assistantName').value.trim() || 'Lily'
+         cfg.userName = $('s-userName').value.trim()
+         cfg.tone = $('s-tone').value.trim()
+         cfg.aboutUser = $('s-aboutUser').value.trim()
+         cfg.careNotes = $('s-careNotes').value.trim()
+         cfg.memory = $('s-memory').value.split('\n').map(l => l.trim()).filter(Boolean)
+         cfg.apiKey = $('s-apiKey').value.trim()
+         cfg.model = $('s-model').value
+         try {
+                 await window.lily.saveConfig(cfg)
+         } catch {}
+         settingsPanel.classList.add('hidden')
+         statusText.textContent = 'Settings saved'
+         setTimeout(() => { statusText.textContent = 'Ready' }, 2000)
+   }
+
+   settingsBtn.addEventListener('click', openSettings)
+    $('save-settings-btn').addEventListener('click', saveSettings)
+    $('close-settings-btn').addEventListener('click', () => settingsPanel.classList.add('hidden'))
+
+   // ── Send message ───────────────────────────────────────
+   async function sendMessage() {
+         const text = input.value.trim()
+         if (!text || busy) return
+         busy = true
+         sendBtn.disabled = true
+         input.value = ''
+         input.style.height = 'auto'
+
+      addMsg('user', text)
+         history.push({ role: 'user', content: text })
+         statusText.textContent = 'Thinking...'
+         showTyping()
+
       try {
-        const result = await window.lily.chat(history)
-        removeTyping()
-        if (result.ok) {
-          addMessage('lily', result.reply)
-          history.push({ role: 'assistant', content: result.reply })
-          if (history.length > 40) history = history.slice(-40)
-          setStatus('Ready')
-        } else {
-          addMessage('system', 'Error: ' + result.error)
-          setStatus('Error')
-        }
+              const reply = await window.lily.chat({
+                        history,
+                        config: cfg
+              })
+              hideTyping()
+              addMsg('lily', reply)
+              lastLilyText = reply
+              history.push({ role: 'assistant', content: reply })
+              statusText.textContent = 'Ready'
+
+           // Auto-speak reply if speech synthesis is available
+           if (window.speechSynthesis) {
+                     // Small delay to ensure voices are loaded
+                setTimeout(() => speak(reply), 300)
+           }
       } catch (err) {
-        removeTyping()
-        addMessage('system', 'Something went wrong: ' + err.message)
-        setStatus('Error')
+              hideTyping()
+              const errMsg = 'Error: ' + (err.message || 'Unknown error')
+              addMsg('lily', errMsg)
+              lastLilyText = errMsg
+              statusText.textContent = 'Error'
+              setTimeout(() => { statusText.textContent = 'Ready' }, 3000)
       }
-    }
 
-    sendBtn.addEventListener('click', sendMessage)
-    inputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
-    })
-    inputEl.addEventListener('input', () => {
-      inputEl.style.height = 'auto'
-      inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px'
-    })
+      busy = false
+         sendBtn.disabled = false
+         input.focus()
+   }
 
-    function openSettings() {
-      document.getElementById('s-assistantName').value = config.assistantName || ''
-      document.getElementById('s-userName').value = config.userName || ''
-      document.getElementById('s-tone').value = config.tone || ''
-      document.getElementById('s-aboutUser').value = config.aboutUser || ''
-      document.getElementById('s-careNotes').value = config.careNotes || ''
-      document.getElementById('s-memory').value = (config.memory || []).join('\n')
-      document.getElementById('s-apiKey').value = config.apiKey || ''
-      const sel = document.getElementById('s-model')
-      if (sel) sel.value = config.model || 'llama-3.3-70b-versatile'
-      settingsPanel.classList.remove('hidden')
-    }
+   sendBtn.addEventListener('click', sendMessage)
 
-    async function saveSettings() {
-      const c = {
-        assistantName: document.getElementById('s-assistantName').value.trim() || 'Lily',
-        userName: document.getElementById('s-userName').value.trim(),
-        tone: document.getElementById('s-tone').value.trim(),
-        aboutUser: document.getElementById('s-aboutUser').value.trim(),
-        careNotes: document.getElementById('s-careNotes').value.trim(),
-        memory: document.getElementById('s-memory').value.split('\n').map(s => s.trim()).filter(Boolean),
-        apiKey: document.getElementById('s-apiKey').value.trim(),
-        model: document.getElementById('s-model').value
-      }
-      try { config = await window.lily.saveSettings(c); addMessage('system', 'Settings saved.') }
-      catch (e) { addMessage('system', 'Could not save.') }
-      settingsPanel.classList.add('hidden')
-    }
+   input.addEventListener('keydown', e => {
+         if (e.key === 'Enter' && !e.shiftKey) {
+                 e.preventDefault()
+                 sendMessage()
+         }
+   })
 
-    settingsBtn.addEventListener('click', openSettings)
-    saveSettingsBtn.addEventListener('click', saveSettings)
-    closeSettingsBtn.addEventListener('click', () => settingsPanel.classList.add('hidden'))
+   input.addEventListener('input', () => {
+         input.style.height = 'auto'
+         input.style.height = Math.min(input.scrollHeight, 120) + 'px'
+   })
 
-    const name = config.assistantName || 'Lily'
-    const user = config.userName ? ', ' + config.userName : ''
-    addMessage('lily', 'Hi' + user + ". I'm " + name + ". I'm here whenever you need me.")
-    setStatus('Ready')
-  })()
+   // ── Window controls ────────────────────────────────────
+   $('btn-minimize').addEventListener('click', () => {
+         try { window.lily.minimize() } catch {}
+   })
 
-  input.addEventListener('input', () => {
-    input.style.height = 'auto'
-    input.style.height = Math.min(input.scrollHeight, 120) + 'px'
-  })
+   $('btn-close').addEventListener('click', () => {
+         try { window.lily.close() } catch {}
+   })
 
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
-  })
+   // ── Init ───────────────────────────────────────────────
+   await loadCfg()
 
-  sendBtn.addEventListener('click', sendMessage)
+   // Preload voices
+   if (window.speechSynthesis) {
+         window.speechSynthesis.getVoices()
+         window.speechSynthesis.addEventListener('voiceschanged', () => {
+                 window.speechSynthesis.getVoices()
+         })
+   }
 
-  $('btn-minimize').addEventListener('click', () => window.electron && window.electron.minimize && window.electron.minimize())
-  $('btn-close').addEventListener('click', () => window.electron && window.electron.close && window.electron.close())
+   const name = cfg.assistantName || 'Lily'
+    const greeting = `Hello! I'm ${name}. How can I help you today?`
+    addMsg('lily', greeting)
+    lastLilyText = greeting
 
-  function populateSettings() {
-    $('s-assistantName').value = cfg.assistantName || ''
-    $('s-userName').value = cfg.userName || ''
-    $('s-tone').value = cfg.tone || ''
-    $('s-aboutUser').value = cfg.aboutUser || ''
-    $('s-careNotes').value = cfg.careNotes || ''
-    $('s-memory').value = Array.isArray(cfg.memory) ? cfg.memory.join('\n') : ''
-    $('s-apiKey').value = cfg.apiKey || ''
-    const m = $('s-model')
-    if (m) m.value = cfg.model || 'llama-3.3-70b-versatile'
-  }
-
-  settingsBtn.addEventListener('click', () => {
-    populateSettings()
-    settingsPanel.classList.remove('hidden')
-  })
-
-  $('close-settings-btn').addEventListener('click', () => settingsPanel.classList.add('hidden'))
-
-  $('save-settings-btn').addEventListener('click', async () => {
-    const newCfg = {
-      assistantName: $('s-assistantName').value.trim() || 'Lily',
-      userName: $('s-userName').value.trim(),
-      tone: $('s-tone').value.trim(),
-      aboutUser: $('s-aboutUser').value.trim(),
-      careNotes: $('s-careNotes').value.trim(),
-      memory: $('s-memory').value.split('\n').map(l => l.trim()).filter(Boolean),
-      apiKey: $('s-apiKey').value.trim(),
-      model: $('s-model').value
-    }
-    try {
-      cfg = await window.lily.saveSettings(newCfg)
-      settingsPanel.classList.add('hidden')
-      setStatus('Settings saved')
-      setTimeout(() => setStatus('Ready'), 2000)
-    } catch (e) {
-      addMsg('system', 'Could not save settings.')
-    }
-  })
-
-  try {
-    cfg = await window.lily.loadSettings()
-  } catch (e) { cfg = {} }
-  const name = cfg.assistantName || 'Lily'
-  const user = cfg.userName ? ', ' + cfg.userName : ''
-  addMsg('lily', 'Hi' + user + '. I am ' + name + '. I am here whenever you are ready.')
-  setStatus(cfg.apiKey ? 'Connected' : 'Offline mode')
+   statusText.textContent = 'Ready'
+    input.focus()
 })()
